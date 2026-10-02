@@ -32,7 +32,7 @@
     @media print {
       @page { size: A4 portrait; margin: 10mm; }
       body { background-color: #fff !important; font-size: 9pt !important; color: #000 !important; }
-      .navbar, .btn, .dataTables_filter, .dataTables_length, .dataTables_info, .dataTables_paginate, .nav, form, .filter-section, .action-col, #view-login, #view-config { display: none !important; }
+      .navbar, .btn, .dataTables_filter, .dataTables_length, .dataTables_info, .dataTables_paginate, .nav, form, .filter-section, .action-col, #view-error, #view-config { display: none !important; }
       .card { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; }
       .container { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
       .app-tab { display: none !important; }
@@ -65,11 +65,11 @@
     </div>
   </div>
 
-  <!-- ===== หน้าแจ้งข้อผิดพลาดเข้าระบบอัตโนมัติ (ไม่มีฟอร์มล็อกอินแล้ว) ===== -->
-  <div id="view-login" class="container d-none" style="max-width: 560px; margin-top: 12vh;">
+  <!-- ===== หน้าแจ้งข้อผิดพลาด ===== -->
+  <div id="view-error" class="container d-none" style="max-width: 560px; margin-top: 12vh;">
     <div class="card p-4">
       <h4 class="text-center fw-bold mb-3">OT ANVA &amp; Co., Ltd.</h4>
-      <div class="alert alert-danger mb-3" id="loginMsg"></div>
+      <div class="alert alert-danger mb-3" id="errBox"></div>
       <button type="button" class="btn btn-dark w-100" onclick="location.reload()">🔄 ลองใหม่</button>
     </div>
   </div>
@@ -87,9 +87,7 @@
           <a class="nav-link px-3" id="nav-summary" onclick="switchTab('summary')">📊 3. สรุปรายเดือน</a>
           <a class="nav-link px-3 text-info" id="nav-allowance" onclick="switchTab('allowance')">💰 4. เบี้ยขยัน</a>
           <a class="nav-link px-3" id="nav-employees" onclick="switchTab('employees')">👥 5. พนักงาน</a>
-          <a class="nav-link px-3 d-none" id="nav-users" onclick="switchTab('users')">🔑 6. ผู้ใช้งาน</a>
-          <a class="nav-link px-3 d-none" id="nav-import" onclick="switchTab('import')">📥 7. นำเข้าข้อมูล</a>
-          <span class="navbar-text small mx-2 text-light" id="whoami"></span>
+          <a class="nav-link px-3 d-none" id="nav-import" onclick="switchTab('import')">📥 6. นำเข้าข้อมูล</a>
         </div>
       </div>
     </div>
@@ -373,28 +371,7 @@
       </div>
     </div>
 
-    <!-- ==================== 6: ผู้ใช้งาน ==================== -->
-    <div id="tab-users" class="app-tab" style="display: none;">
-      <div class="card p-4">
-        <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
-          <h4 class="text-primary m-0">🔑 ผู้ใช้งานระบบ</h4>
-          <button class="btn btn-sm btn-outline-success" onclick="A.loadUsers()">🔄 รีเฟรช</button>
-        </div>
-        <div class="alert alert-info small">
-          <b>เพิ่มผู้ใช้ใหม่:</b> สร้างบัญชี (อีเมล+รหัสผ่าน) ที่ Supabase → Authentication → Users → Add user ก่อน
-          แล้วกลับมาที่หน้านี้ กดรีเฟรช และกด "กำหนดสิทธิ์" ที่อีเมลนั้น (คนที่ยังไม่มีสิทธิ์จะเข้าใช้งานไม่ได้)
-          <br><b>สิทธิ์:</b> owner = ทุกอย่าง · manager = บันทึก/แก้/ลบ/จัดการพนักงาน · hr = บันทึก/แก้ OT และเบี้ยขยัน · viewer = ดู/พิมพ์/ส่งออก
-        </div>
-        <table id="userTable" class="table table-striped table-bordered w-100">
-          <thead class="table-dark">
-            <tr><th>อีเมล</th><th>ชื่อ</th><th>สิทธิ์</th><th>สถานะ</th><th>เข้าสู่ระบบล่าสุด</th><th class="text-center">จัดการ</th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ==================== 7: นำเข้าข้อมูล CSV ==================== -->
+    <!-- ==================== 6: นำเข้าข้อมูล CSV ==================== -->
     <div id="tab-import" class="app-tab" style="display: none;">
       <div class="card p-4 mx-auto" style="max-width: 1000px;">
         <h4 class="text-primary border-bottom pb-3 mb-3">📥 นำเข้าข้อมูลเดิมจาก Google Sheet (ไฟล์ CSV)</h4>
@@ -442,15 +419,12 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 
 <script>
-// ============ ตั้งค่า (anon key เปิดเผยได้ ความปลอดภัยอยู่ที่ล็อกอิน + RLS) ============
+// ============ ตั้งค่า ============
+// เวอร์ชันนี้ไม่มีระบบล็อกอิน: ทุกคนที่เปิดหน้าเว็บ = สิทธิ์ owner (ต้องรัน schema.sql ส่วน 3 / migration 4 แล้ว)
 // ห้ามใส่ service_role key ที่นี่เด็ดขาด
-// เวอร์ชันนี้ไม่มีหน้าล็อกอิน: ระบบเข้าสู่ระบบอัตโนมัติด้วยบัญชี owner ที่ใส่ใน AUTO_EMAIL / AUTO_PASS
-// (ใครมีลิงก์เว็บ = เข้าใช้งานได้เต็มสิทธิ์ owner)
 const CFG = {
   SUPABASE_URL: 'https://xmxbfbdtjffbtwufmhgt.supabase.co',
-  SUPABASE_ANON: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhteGJmYmR0amZmYnR3dWZtaGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5MDY0MDksImV4cCI6MjEwNjQ4MjQwOX0.9eLFZLBVf5x6TAD59ipqFPSjGqqMZOIkYoV2yWUSzhw',
-  AUTO_EMAIL: 'admin@anva.com',
-  AUTO_PASS: '11111111'
+  SUPABASE_ANON: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhteGJmYmR0amZmYnR3dWZtaGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5MDY0MDksImV4cCI6MjEwNjQ4MjQwOX0.9eLFZLBVf5x6TAD59ipqFPSjGqqMZOIkYoV2yWUSzhw'
 };
 
 // ============ ฟังก์ชันล้วน (ไม่แตะหน้าเว็บ) ============
@@ -511,7 +485,7 @@ const S = { tab: '', user: null, role: null, name: '', editId: '', editEntry: nu
 const D = { emps: [], empById: {}, hist: [], allow: [], users: [] };
 const A = {};
 let sb, currentHourlyRate = 0;
-let historyDataTable, allowanceDataTable, summaryOtDataTable, summaryAllowDataTable, empDataTable, userDataTable;
+let historyDataTable, allowanceDataTable, summaryOtDataTable, summaryAllowDataTable, empDataTable;
 const IMP = {
   emp: { rpc: 'import_employees', req: ['emp_id', 'full_name', 'emp_type', 'base_rate'], cols: ['emp_id', 'full_name', 'department', 'emp_type', 'base_rate'], purge: null, label: 'พนักงาน' },
   ot:  { rpc: 'import_ot', req: ['ot_date', 'emp_id', 'ot_multiplier', 'total_amount_baht'], cols: ['ot_date', 'emp_id', 'full_name', 'before_hrs', 'after_hrs', 'total_hrs', 'ot_multiplier', 'total_amount_baht', 'site_name', 'remark'], purge: 'ot', label: 'OT' },
@@ -559,7 +533,7 @@ $(async function () {
   if (!CFG.SUPABASE_URL || CFG.SUPABASE_URL.indexOf('ใส่_') === 0 || CFG.SUPABASE_ANON.indexOf('ใส่_') === 0) {
     $('#view-config').removeClass('d-none'); return;
   }
-  sb = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON);
+  sb = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON, { auth: { persistSession: false, autoRefreshToken: false } });
   const now = new Date();
   $('.month-select').html(MONTHS.map((n, i) => `<option value="${i + 1}">${n}</option>`).join('')).val(now.getMonth() + 1);
   $('#histFilterYearThai, #sumFilterYearThai').val(now.getFullYear() + 543);   // เดือน/ปีปัจจุบัน
@@ -567,61 +541,34 @@ $(async function () {
   initPickers();
   setupDataTables();
   bindForms();
-  await autoSignIn();
+  await enterApp();
 });
 
-// เข้าสู่ระบบอัตโนมัติ (ไม่มีหน้าล็อกอิน): ใช้ session เดิมถ้ามี ไม่งั้นล็อกอินด้วยบัญชีใน CFG
-async function autoSignIn() {
-  try {
-    const { data } = await sb.auth.getSession();
-    if (!data.session) {
-      if (!CFG.AUTO_EMAIL || !CFG.AUTO_PASS || CFG.AUTO_EMAIL.indexOf('ใส่_') === 0 || CFG.AUTO_PASS.indexOf('ใส่_') === 0) {
-        return showLogin('ยังไม่ได้ตั้งค่า AUTO_EMAIL / AUTO_PASS ในบล็อก CFG');
-      }
-      const { error } = await sb.auth.signInWithPassword({ email: CFG.AUTO_EMAIL, password: CFG.AUTO_PASS });
-      if (error) return showLogin('เข้าระบบอัตโนมัติไม่สำเร็จ: ' + error.message);
-    }
-    await enterApp();
-  } catch (err) {
-    console.error(err);
-    showLogin('เข้าระบบอัตโนมัติไม่สำเร็จ: ' + errMsg(err));
-  }
-}
-
-function showLogin(msg) {
-  $('#view-app').addClass('d-none'); $('#view-login').removeClass('d-none');
-  $('#loginMsg').text(msg || '');
+function showError(msg) {
+  $('#view-app').addClass('d-none'); $('#view-error').removeClass('d-none');
+  $('#errBox').text(msg || '');
   document.body.dataset.tab = '';
 }
 
 async function enterApp() {
   try {
-    const { data: { user } } = await sb.auth.getUser();
-    if (!user) return showLogin('ไม่พบบัญชีผู้ใช้');
-    S.user = user;
-    const prof = await Q(sb.from('profiles').select('role,active,full_name').eq('user_id', user.id).maybeSingle());
-    if (!prof || !prof.active) {
-      await sb.auth.signOut();
-      return showLogin('บัญชีที่ใช้เข้าระบบอัตโนมัติยังไม่ได้รับสิทธิ์ใช้งาน กรุณาตรวจสอบตาราง profiles ใน Supabase');
-    }
-    S.role = prof.role; S.name = prof.full_name || user.email;
+    S.role = 'owner'; S.name = 'ผู้ใช้งาน';          // ไม่มีล็อกอิน: ทุกคน = owner (ฐานข้อมูลถือว่า anon = owner)
     const st = await Q(sb.from('settings').select('value').eq('key', 'company_name').maybeSingle());
     if (st && st.value) S.company = st.value;
     $('.company-name').text(S.company);
-    $('#whoami').text(S.name + ' (' + S.role + ')');
-    $('#view-login').addClass('d-none'); $('#view-app').removeClass('d-none');
+    $('#view-error').addClass('d-none'); $('#view-app').removeClass('d-none');
     applyRole();
     await Promise.all([loadEmployeesData(), loadLocks()]);
-    switchTab(canEdit() ? 'form' : 'history');
+    switchTab('form');
   } catch (err) {
     console.error(err);
-    showLogin('เกิดข้อผิดพลาด: ' + errMsg(err));
+    showError('เชื่อมต่อฐานข้อมูลไม่สำเร็จ: ' + errMsg(err) + ' (ถ้าเพิ่งเอาล็อกอินออก ตรวจว่ารัน schema.sql ส่วน 3 แล้ว)');
   }
 }
 
 function applyRole() {
   $('#nav-form').toggleClass('d-none', !canEdit());
-  $('#nav-users, #nav-import').toggleClass('d-none', !isOwner());
+  $('#nav-import').toggleClass('d-none', !isOwner());
   $('#allowFormCard').toggleClass('d-none', !canEdit());
   $('#btnAddEmp').toggleClass('d-none', !canManage());
   $('#lockBox').toggleClass('d-none', !isOwner());
@@ -772,21 +719,11 @@ function setupDataTables() {
         } }
     ]
   });
-  userDataTable = $('#userTable').DataTable({
-    language: TH_LANG, order: [[0, 'asc']],
-    columnDefs: [
-      { targets: [0, 1], render: escRender },
-      { targets: 2, render: (d, t) => t === 'display' ? (d ? e(d) : '<span class="text-danger">ยังไม่มีสิทธิ์</span>') : d },
-      { targets: 3, render: (d, t) => t === 'display' ? (d === null ? '-' : d ? '<span class="badge bg-success">ใช้งาน</span>' : '<span class="badge bg-secondary">ปิด</span>') : d },
-      { targets: 4, render: (d, t) => (t === 'display' && d) ? e(new Date(d).toLocaleString('th-TH')) : (d || '') },
-      { className: 'text-center', targets: 5, orderable: false, searchable: false, render: (d, t) => t === 'display' ? `<button class="btn btn-sm btn-outline-primary" onclick="A.editUser('${e(d)}')">กำหนดสิทธิ์</button>` : '' }
-    ]
-  });
 }
 
 // ============ สลับแท็บ ============
 function switchTab(tabId) {
-  const allowed = { form: canEdit(), history: true, summary: true, allowance: true, employees: true, users: isOwner(), import: isOwner() };
+  const allowed = { form: canEdit(), history: true, summary: true, allowance: true, employees: true, import: isOwner() };
   if (!allowed[tabId]) return;
   S.tab = tabId; document.body.dataset.tab = tabId;
   $('.app-tab').hide();
@@ -798,7 +735,6 @@ function switchTab(tabId) {
   if (tabId === 'summary') A.loadSummary();
   if (tabId === 'allowance') A.loadAllowance();
   if (tabId === 'employees') A.loadEmployees();
-  if (tabId === 'users') A.loadUsers();
   setTimeout(() => $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust(), 300);
 }
 
@@ -1067,35 +1003,6 @@ def({
     await Q(sb.rpc('delete_employee', { p_id: id }));
     Swal.fire('ลบแล้ว!', '', 'success');
     A.loadEmployees();
-  },
-
-  // ---------- ผู้ใช้งาน ----------
-  loadUsers: async function () {
-    D.users = await Q(sb.rpc('list_users'));
-    userDataTable.clear();
-    D.users.forEach(u => userDataTable.row.add([u.email, u.fullName || '', u.role, u.active, u.lastSignIn, u.userId]));
-    userDataTable.draw();
-  },
-  editUser: async function (id) {
-    const u = D.users.find(x => x.userId === id);
-    if (!u) return;
-    const roles = ['owner', 'manager', 'hr', 'viewer'];
-    const r = await Swal.fire({
-      title: 'กำหนดสิทธิ์: ' + u.email, focusConfirm: false, showCancelButton: true,
-      confirmButtonText: 'บันทึก', cancelButtonText: 'ยกเลิก',
-      html: `<div class="text-start">
-        <label class="form-label fw-bold mt-2">ชื่อที่แสดง</label><input id="sw_uname" class="form-control" value="${e(u.fullName)}">
-        <label class="form-label fw-bold mt-2">สิทธิ์</label>
-        <select id="sw_role" class="form-select">${roles.map(x => `<option ${(u.role || 'viewer') === x ? 'selected' : ''}>${x}</option>`).join('')}</select>
-        <div class="form-check mt-3"><input id="sw_uactive" type="checkbox" class="form-check-input" ${u.active === false ? '' : 'checked'}><label class="form-check-label" for="sw_uactive">เปิดใช้งานบัญชี</label></div>
-      </div>`,
-      preConfirm: () => ({ p_user_id: id, p_role: document.getElementById('sw_role').value,
-        p_active: document.getElementById('sw_uactive').checked, p_full_name: document.getElementById('sw_uname').value.trim() || null })
-    });
-    if (!r.isConfirmed) return;
-    await Q(sb.rpc('set_user', r.value));
-    Swal.fire('สำเร็จ!', 'บันทึกสิทธิ์เรียบร้อย', 'success');
-    A.loadUsers();
   },
 
   // ---------- นำเข้า CSV ----------
