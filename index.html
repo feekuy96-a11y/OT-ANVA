@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ระบบบันทึก OT - ANVA &amp; Co., Ltd.</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+  <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { background-color: #f8fafc; font-family: 'Segoe UI', Prompt, sans-serif; }
+    .card { border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); }
+    .select2-container .select2-selection--single { height: 38px; border: 1px solid #ced4da; border-radius: 0.375rem; }
+    .select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 36px; }
+    .select2-container--default .select2-selection--single .select2-selection__arrow { height: 36px; }
+    .money-highlight { background-color: #d1e7dd !important; color: #0f5132 !important; font-weight: bold; font-size: 1.1rem; }
+    .nav-link { cursor: pointer; border-radius: 6px; margin: 0 4px; }
+    .table-dark th { background-color: #1e293b !important; }
+    tfoot th { background-color: #e2e8f0; font-size: 1.05rem; }
+    .num-align { text-align: right !important; }
+    .action-icons { font-size: 1.1rem; cursor: pointer; transition: 0.2s; }
+    .action-icons.edit { color: #f59e0b; margin-right: 10px; }
+    .action-icons.edit:hover { color: #d97706; }
+    .action-icons.delete { color: #ef4444; }
+    .action-icons.delete:hover { color: #b91c1c; }
+    .print-only { display: none; }
+    .report-box { max-height: 360px; overflow: auto; }
+
+    /* ===== พิมพ์ A4 แนวตั้ง ===== */
+    @media print {
+      @page { size: A4 portrait; margin: 10mm; }
+      body { background-color: #fff !important; font-size: 9pt !important; color: #000 !important; }
+      .navbar, .btn, .dataTables_filter, .dataTables_length, .dataTables_info, .dataTables_paginate, .nav, form, .filter-section, .action-col, #view-login, #view-config { display: none !important; }
+      .card { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; }
+      .container { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+      .app-tab { display: none !important; }
+      body[data-tab="summary"] #tab-summary, body[data-tab="history"] #tab-history { display: block !important; }
+      .print-only { display: block !important; margin-bottom: 10px !important; text-align: center; }
+      .print-only h3 { font-size: 12pt !important; margin-bottom: 2px !important; }
+      .print-only p { font-size: 10pt !important; margin-bottom: 5px !important; }
+      table { width: 100% !important; border-collapse: collapse !important; margin-top: 0 !important; border: 1px solid #000 !important; }
+      table th, table td { border: 1px solid #000 !important; padding: 4px 6px !important; line-height: 1.2 !important; color: #000 !important; }
+      .table-dark th { background-color: #e2e8f0 !important; color: #000 !important; font-weight: bold; font-size: 9pt !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; text-align: center; }
+      #summaryOtTable th:nth-child(1), #summaryOtTable td:nth-child(1),
+      #summaryAllowTable th:nth-child(1), #summaryAllowTable td:nth-child(1) { display: none !important; }
+      tfoot { display: table-footer-group !important; }
+      tfoot th { background-color: #f1f5f9 !important; color: #000 !important; font-size: 9.5pt !important; font-weight: bold !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .signature-section { display: flex !important; justify-content: space-between; margin-top: 30px !important; page-break-inside: avoid; }
+      .signature-box { width: 30%; text-align: center; font-size: 9pt !important; }
+      .signature-box p { margin: 2px 0 !important; }
+      tr { page-break-inside: avoid; page-break-after: auto; }
+      thead { display: table-header-group; }
+    }
+  </style>
+</head>
+<body data-tab="">
+
+  <!-- ===== ยังไม่ได้ตั้งค่า CFG ===== -->
+  <div id="view-config" class="container mt-5 d-none">
+    <div class="alert alert-warning">
+      <h5 class="alert-heading">ยังไม่ได้ตั้งค่าการเชื่อมต่อ Supabase</h5>
+      กรุณาเปิดไฟล์ <code>index.html</code> แล้วใส่ค่า <code>SUPABASE_URL</code> และ <code>SUPABASE_ANON</code> ในบล็อก <code>CFG</code> ด้านบนของสคริปต์ (ดูขั้นตอนใน SETUP.md)
+    </div>
+  </div>
+
+  <!-- ===== หน้าล็อกอิน ===== -->
+  <div id="view-login" class="container d-none" style="max-width: 420px; margin-top: 12vh;">
+    <div class="card p-4">
+      <h4 class="text-center fw-bold mb-1">OT ANVA &amp; Co., Ltd.</h4>
+      <p class="text-center text-muted mb-4">เข้าสู่ระบบด้วยอีเมลและรหัสผ่านของพนักงาน</p>
+      <form id="loginForm">
+        <div class="mb-3">
+          <label class="form-label fw-bold" for="loginEmail">อีเมล</label>
+          <input type="email" class="form-control" id="loginEmail" autocomplete="username" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold" for="loginPass">รหัสผ่าน</label>
+          <input type="password" class="form-control" id="loginPass" autocomplete="current-password" required>
+        </div>
+        <div class="text-danger mb-3" id="loginMsg"></div>
+        <button type="submit" class="btn btn-dark w-100 py-2" id="btnLogin">เข้าสู่ระบบ</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== ตัวระบบ ===== -->
+  <div id="view-app" class="d-none">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 py-3 shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-bold text-warning" href="#">OT ANVA &amp; Co., Ltd.</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu" aria-label="เมนู"><span class="navbar-toggler-icon"></span></button>
+      <div class="collapse navbar-collapse" id="navMenu">
+        <div class="navbar-nav ms-auto align-items-lg-center">
+          <a class="nav-link px-3" id="nav-form" onclick="switchTab('form')">📝 1. บันทึก OT</a>
+          <a class="nav-link px-3" id="nav-history" onclick="switchTab('history')">📜 2. ประวัติ OT</a>
+          <a class="nav-link px-3" id="nav-summary" onclick="switchTab('summary')">📊 3. สรุปรายเดือน</a>
+          <a class="nav-link px-3 text-info" id="nav-allowance" onclick="switchTab('allowance')">💰 4. เบี้ยขยัน</a>
+          <a class="nav-link px-3" id="nav-employees" onclick="switchTab('employees')">👥 5. พนักงาน</a>
+          <a class="nav-link px-3 d-none" id="nav-users" onclick="switchTab('users')">🔑 6. ผู้ใช้งาน</a>
+          <a class="nav-link px-3 d-none" id="nav-import" onclick="switchTab('import')">📥 7. นำเข้าข้อมูล</a>
+          <span class="navbar-text small mx-2 text-light" id="whoami"></span>
+          <button class="btn btn-sm btn-outline-light" onclick="A.logout()">ออกจากระบบ</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mb-5">
+
+    <!-- ==================== 1: บันทึก OT ==================== -->
+    <div id="tab-form" class="app-tab">
+      <div class="card p-4 mx-auto" style="max-width: 900px;">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-4">
+          <h4 class="text-primary m-0" id="formOTTitle">ระบบบันทึกคำขออนุมัติทำงานล่วงเวลา (OT)</h4>
+          <button class="btn btn-sm btn-outline-secondary d-none" id="btnCancelEdit" onclick="A.cancelEdit()">ยกเลิกการแก้ไข</button>
+        </div>
+        <form id="otForm">
+          <input type="hidden" id="editId" value="">
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label class="form-label fw-bold">วันที่ทำ OT</label>
+              <input type="text" class="form-control bg-white" id="otDate" placeholder="เลือกวันที่..." readonly required>
+              <input type="hidden" id="otDateISO">
+            </div>
+            <div class="col-md-8">
+              <label class="form-label fw-bold">เลือกพนักงาน</label>
+              <select class="form-control" id="empSearch" style="width:100%"></select>
+            </div>
+          </div>
+          <div class="row mb-3 bg-light p-3 rounded border">
+            <div class="col-md-3">
+              <label class="form-label text-muted">ประเภทการจ้าง:</label>
+              <input type="text" class="form-control-plaintext fw-bold" id="showEmpType" value="-" readonly>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label text-muted">เรทต่อชั่วโมง:</label>
+              <input type="text" class="form-control-plaintext fw-bold text-primary" id="showHourlyRate" value="0.00 ฿" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">เรทการคูณ OT ตามระเบียบ</label>
+              <select class="form-select border-primary" id="otMultiplier" onchange="calcTotal()">
+                <option value="1.5">วันทำงานปกติ หลังเลิกงาน (x1.5)</option>
+                <option value="1.0">วันหยุด ในเวลาทำงาน - รายเดือน (x1.0)</option>
+                <option value="2.0">วันหยุด ในเวลาทำงาน - รายวัน (x2.0)</option>
+                <option value="3.0">วันหยุด นอกเวลาทำงาน (x3.0)</option>
+              </select>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6 border-end">
+              <h6 class="text-success fw-bold">ก่อนเวลาทำงานปกติ (24 ชม.)</h6>
+              <div class="d-flex gap-2">
+                <input type="text" class="form-control bg-white time-picker text-center" id="bStart" placeholder="00:00" onchange="calcTotal()" readonly>
+                <span class="mt-2">-</span>
+                <input type="text" class="form-control bg-white time-picker text-center" id="bEnd" placeholder="00:00" onchange="calcTotal()" readonly>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <h6 class="text-warning fw-bold">หลังเวลาทำงานปกติ (24 ชม.)</h6>
+              <div class="d-flex gap-2">
+                <input type="text" class="form-control bg-white time-picker text-center" id="aStart" placeholder="00:00" onchange="calcTotal()" readonly>
+                <span class="mt-2">-</span>
+                <input type="text" class="form-control bg-white time-picker text-center" id="aEnd" placeholder="00:00" onchange="calcTotal()" readonly>
+              </div>
+            </div>
+          </div>
+          <div class="row mb-2">
+            <div class="col-md-2">
+              <label class="form-label fw-bold">รวมชั่วโมง</label>
+              <input type="number" class="form-control text-center fw-bold" id="totalHrs" readonly>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">💰 ยอดเงิน (บาท)</label>
+              <input type="text" class="form-control money-highlight text-center" id="totalAmount" value="0.00" readonly>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Site งาน</label>
+              <input type="text" class="form-control" id="site" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">หมายเหตุ</label>
+              <input type="text" class="form-control" id="remark">
+            </div>
+          </div>
+          <div class="text-muted small mb-4">* ยอดเงินที่แสดงเป็นตัวอย่างเท่านั้น ระบบจะคำนวณใหม่ที่ฐานข้อมูลตอนบันทึก</div>
+          <button type="submit" class="btn btn-primary w-100 py-3 fs-5 shadow-sm" id="btnSubmit">💾 บันทึก OT เข้าสู่ระบบ</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ==================== 2: ประวัติ OT ==================== -->
+    <div id="tab-history" class="app-tab" style="display: none;">
+      <div class="card p-4">
+        <div class="print-only">
+          <h3 class="fw-bold m-0 text-center company-name" style="color: #0f172a;"></h3>
+          <p class="mt-1 mb-2 text-center">รายงานประวัติการปฏิบัติงานล่วงเวลา <span id="printDateHist"></span></p>
+        </div>
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 border-bottom pb-3 gap-2">
+          <h4 class="text-primary m-0">📜 ประวัติการทำ OT ของพนักงาน</h4>
+          <div>
+            <button class="btn btn-success me-2 shadow-sm" onclick="A.exportExcel('history')">📥 Excel (ตามตัวกรอง)</button>
+            <button class="btn btn-danger shadow-sm" onclick="window.print()">📄 พิมพ์ PDF</button>
+          </div>
+        </div>
+        <div class="filter-section row mb-4 bg-light p-3 rounded align-items-end border g-2">
+          <div class="col-md-3">
+            <label class="form-label fw-bold">เลือกเดือน</label>
+            <select class="form-select border-primary month-select" id="histFilterMonth"></select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-bold">ปี พ.ศ.</label>
+            <input type="number" class="form-control border-primary" id="histFilterYearThai">
+          </div>
+          <div class="col-md-3">
+            <button class="btn btn-dark w-100 py-2 fw-bold" onclick="A.loadHistory()">🔍 ดึงข้อมูลประวัติ</button>
+          </div>
+        </div>
+        <table id="historyTable" class="table table-striped table-bordered w-100">
+          <thead class="table-dark">
+            <tr>
+              <th>วันที่ทำ OT</th><th>รหัส</th><th>ชื่อ-นามสกุล</th><th>Site งาน</th>
+              <th class="num-align">เรทคูณ</th><th class="num-align">ชั่วโมง (ชม.)</th>
+              <th class="num-align">ยอดเงิน (บาท)</th><th class="text-center action-col">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot>
+            <tr>
+              <th colspan="4" class="num-align">ยอดรวมทั้งหมดตามเงื่อนไข:</th>
+              <th id="histTotalHrs" class="num-align fw-bold">0.00</th>
+              <th id="histTotalMoney" class="num-align fw-bold">0.00</th>
+              <th class="action-col"></th>
+            </tr>
+          </tfoot>
+        </table>
+        <div class="print-only signature-section" style="display:none;">
+          <div class="signature-box"><br><br><p class="m-0">................................................</p><p class="mt-1 mb-0 fw-bold">( ผู้จัดทำรายงาน )</p></div>
+          <div class="signature-box"><br><br><p class="m-0">................................................</p><p class="mt-1 mb-0 fw-bold">( ผู้ตรวจสอบ )</p></div>
+          <div class="signature-box"><br><br><p class="m-0">................................................</p><p class="mt-1 mb-0 fw-bold">( ผู้อนุมัติจ่าย )</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 3: สรุปรายเดือน ==================== -->
+    <div id="tab-summary" class="app-tab" style="display: none;">
+      <div class="card p-4">
+        <div class="print-only">
+          <h3 class="fw-bold m-0 text-center company-name" style="color: #0f172a;"></h3>
+          <p class="mt-1 mb-2 text-center">รายงานสรุปยอดเงินค่าตอบแทนล่วงเวลาและเบี้ยขยัน <span id="printPeriodSummary"></span></p>
+        </div>
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 border-bottom pb-3 gap-2">
+          <h4 class="text-primary m-0">📊 รายงานสรุปยอดเงินค่าตอบแทนรายเดือน</h4>
+          <div>
+            <button class="btn btn-success me-2 shadow-sm" onclick="A.exportExcel('summary')">📥 Excel (ตามตัวกรอง)</button>
+            <button class="btn btn-danger shadow-sm" onclick="window.print()">📄 พิมพ์ PDF</button>
+          </div>
+        </div>
+        <div class="filter-section row mb-4 bg-light p-3 rounded align-items-end border g-2">
+          <div class="col-md-3">
+            <label class="form-label fw-bold">เลือกเดือน</label>
+            <select class="form-select border-primary month-select" id="sumFilterMonth"></select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-bold">ปี พ.ศ.</label>
+            <input type="number" class="form-control border-primary" id="sumFilterYearThai">
+          </div>
+          <div class="col-md-3">
+            <button class="btn btn-dark w-100 py-2 fw-bold" onclick="A.loadSummary()">🔍 ดึงรายงานประมวลผล</button>
+          </div>
+          <div class="col-md-3 d-none" id="lockBox">
+            <span id="lockStatus" class="badge bg-secondary me-1"></span>
+            <button class="btn btn-sm btn-outline-danger" id="btnLock" onclick="A.lockPeriod()">🔒 ล็อกงวดนี้</button>
+            <button class="btn btn-sm btn-outline-success d-none" id="btnUnlock" onclick="A.unlockPeriod()">🔓 ปลดล็อก</button>
+          </div>
+        </div>
+        <h5 class="text-primary mt-3 mb-3 fw-bold"><i class="fas fa-clock"></i> 1. สรุปค่าตอบแทนล่วงเวลา (OT)</h5>
+        <table id="summaryOtTable" class="table table-striped table-bordered w-100 mb-5">
+          <thead class="table-dark">
+            <tr>
+              <th style="width: 15%;">รหัสพนักงาน</th><th style="width: 45%;">ชื่อ-นามสกุล</th>
+              <th class="num-align" style="width: 20%;">ชั่วโมง OT</th><th class="num-align" style="width: 20%;">ยอดเงิน OT (บาท)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot>
+            <tr>
+              <th colspan="2" class="num-align">รวมทั้งสิ้น:</th>
+              <th id="sumTotalHrs" class="num-align fw-bold">0.00</th>
+              <th id="sumTotalOtMoney" class="num-align fw-bold">0.00</th>
+            </tr>
+          </tfoot>
+        </table>
+        <h5 class="text-info mt-4 mb-3 fw-bold"><i class="fas fa-coins"></i> 2. สรุปเบี้ยขยัน</h5>
+        <table id="summaryAllowTable" class="table table-striped table-bordered w-100 mb-4">
+          <thead class="table-dark">
+            <tr>
+              <th style="width: 15%;">รหัสพนักงาน</th><th style="width: 65%;">ชื่อ-นามสกุล</th>
+              <th class="num-align" style="width: 20%;">เบี้ยขยัน (บาท)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot>
+            <tr>
+              <th colspan="2" class="num-align">รวมทั้งสิ้น:</th>
+              <th id="sumTotalAllowMoney" class="num-align fw-bold">0.00</th>
+            </tr>
+          </tfoot>
+        </table>
+        <div class="print-only signature-section" style="display:none;">
+          <div class="signature-box"><br><br><p class="m-0">................................................</p><p class="mt-1 mb-0 fw-bold">( ผู้จัดทำรายงาน )</p></div>
+          <div class="signature-box"><br><br><p class="m-0">................................................</p><p class="mt-1 mb-0 fw-bold">( ผู้ตรวจสอบ )</p></div>
+          <div class="signature-box"><br><br><p class="m-0">................................................</p><p class="mt-1 mb-0 fw-bold">( ผู้อนุมัติจ่าย )</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 4: เบี้ยขยัน ==================== -->
+    <div id="tab-allowance" class="app-tab" style="display: none;">
+      <div class="card p-4 mx-auto mb-4" style="max-width: 900px;" id="allowFormCard">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-4">
+          <h4 class="text-info m-0" id="formAlTitle"><i class="fas fa-coins"></i> ระบบบันทึกเบี้ยขยันพนักงาน</h4>
+          <button class="btn btn-sm btn-outline-secondary d-none" id="btnCancelAlEdit" onclick="A.cancelAlEdit()">ยกเลิกการแก้ไข</button>
+        </div>
+        <form id="allowanceForm">
+          <input type="hidden" id="editAlId" value="">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-bold">วันที่บันทึกรายการ</label>
+              <input type="text" class="form-control bg-white" id="alDate" placeholder="เลือกวันที่..." readonly required>
+              <input type="hidden" id="alDateISO">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">จำนวนเงิน (บาท)</label>
+              <input type="number" step="0.01" min="0.01" class="form-control money-highlight text-center" id="alAmount" placeholder="0.00" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">เลือกพนักงาน (พิมพ์ชื่อเพื่อค้นหา)</label>
+            <select class="form-control" id="alEmpSearch" style="width: 100%;"></select>
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-bold">หมายเหตุ</label>
+            <input type="text" class="form-control" id="alRemark" placeholder="เช่น ประจำเดือน ก.ค. 69">
+          </div>
+          <button type="submit" class="btn btn-info text-white w-100 py-3 fs-5 shadow-sm" id="btnSubmitAl">💾 บันทึกเบี้ยขยัน</button>
+        </form>
+      </div>
+      <div class="card p-4 mx-auto" style="max-width: 900px;">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+          <h5 class="text-primary m-0"><i class="fas fa-list"></i> ประวัติการบันทึกเบี้ยขยัน</h5>
+          <button class="btn btn-sm btn-outline-success" onclick="A.loadAllowance()">🔄 รีเฟรชตาราง</button>
+        </div>
+        <table id="allowanceTable" class="table table-striped table-bordered w-100">
+          <thead class="table-dark">
+            <tr>
+              <th>วันที่</th><th>รหัส</th><th>ชื่อ-นามสกุล</th>
+              <th class="num-align">จำนวนเงิน (บาท)</th><th>หมายเหตุ</th><th class="text-center action-col">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== 5: พนักงาน ==================== -->
+    <div id="tab-employees" class="app-tab" style="display: none;">
+      <div class="card p-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center border-bottom pb-3 mb-4 gap-2">
+          <h4 class="text-primary m-0">👥 รายชื่อพนักงาน</h4>
+          <button class="btn btn-primary d-none" id="btnAddEmp" onclick="A.empForm()">➕ เพิ่มพนักงาน</button>
+        </div>
+        <table id="empTable" class="table table-striped table-bordered w-100">
+          <thead class="table-dark">
+            <tr>
+              <th>รหัส</th><th>ชื่อ-นามสกุล</th><th>แผนก</th><th>ประเภท</th>
+              <th class="num-align">อัตราจ้าง (บาท)</th><th class="num-align">เรท/ชม.</th>
+              <th>สถานะ</th><th class="text-center action-col">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="text-muted small">* เปลี่ยนอัตราจ้างแล้ว รายการ OT เก่าจะไม่เปลี่ยนยอด (ระบบเก็บเรท ณ วันที่บันทึกไว้) · พนักงานที่มีประวัติลบไม่ได้ ให้ "ปิดการใช้งาน"</div>
+      </div>
+    </div>
+
+    <!-- ==================== 6: ผู้ใช้งาน ==================== -->
+    <div id="tab-users" class="app-tab" style="display: none;">
+      <div class="card p-4">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+          <h4 class="text-primary m-0">🔑 ผู้ใช้งานระบบ</h4>
+          <button class="btn btn-sm btn-outline-success" onclick="A.loadUsers()">🔄 รีเฟรช</button>
+        </div>
+        <div class="alert alert-info small">
+          <b>เพิ่มผู้ใช้ใหม่:</b> สร้างบัญชี (อีเมล+รหัสผ่าน) ที่ Supabase → Authentication → Users → Add user ก่อน
+          แล้วกลับมาที่หน้านี้ กดรีเฟรช และกด "กำหนดสิทธิ์" ที่อีเมลนั้น (คนที่ยังไม่มีสิทธิ์จะเข้าใช้งานไม่ได้)
+          <br><b>สิทธิ์:</b> owner = ทุกอย่าง · manager = บันทึก/แก้/ลบ/จัดการพนักงาน · hr = บันทึก/แก้ OT และเบี้ยขยัน · viewer = ดู/พิมพ์/ส่งออก
+        </div>
+        <table id="userTable" class="table table-striped table-bordered w-100">
+          <thead class="table-dark">
+            <tr><th>อีเมล</th><th>ชื่อ</th><th>สิทธิ์</th><th>สถานะ</th><th>เข้าสู่ระบบล่าสุด</th><th class="text-center">จัดการ</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== 7: นำเข้าข้อมูล CSV ==================== -->
+    <div id="tab-import" class="app-tab" style="display: none;">
+      <div class="card p-4 mx-auto" style="max-width: 1000px;">
+        <h4 class="text-primary border-bottom pb-3 mb-3">📥 นำเข้าข้อมูลเดิมจาก Google Sheet (ไฟล์ CSV)</h4>
+        <div class="alert alert-info small mb-4">
+          <b>ขั้นตอน:</b> ทำสำเนา Google Sheet → ในแต่ละชีต เลือก <i>ไฟล์ → ดาวน์โหลด → ค่าที่คั่นด้วยเครื่องหมายจุลภาค (.csv)</i>
+          แล้วนำเข้า <b>ตามลำดับ 1 → 2 → 3</b> (พนักงานต้องมาก่อน) · ทุกครั้งต้อง "ตรวจสอบก่อน" (ยังไม่บันทึก) แล้วค่อย "ยืนยันนำเข้า"<br>
+          นำเข้ารอบเดียวต่อชีต ถ้านำเข้าซ้ำ ระบบจะข้ามแถวที่เคยนำเข้าแล้ว (ดูจากเลขแถวใน Sheet) · แถวที่แปลงไม่ได้จะแสดงรายการให้เห็นทุกแถว ไม่ข้ามเงียบๆ
+        </div>
+        <div class="row g-3 mb-3 align-items-end">
+          <div class="col-md-5">
+            <label class="form-label fw-bold">ชนิดข้อมูล</label>
+            <select class="form-select" id="impType" onchange="A.csvReset()">
+              <option value="emp">1. พนักงาน (ชีต db_Employees)</option>
+              <option value="ot">2. รายการ OT (ชีต db_OT_Log)</option>
+              <option value="al">3. เบี้ยขยัน (ชีต db_Allowance)</option>
+            </select>
+          </div>
+          <div class="col-md-7">
+            <label class="form-label fw-bold">ไฟล์ CSV</label>
+            <input type="file" class="form-control" id="impFile" accept=".csv,text/csv" onchange="A.csvChosen()">
+          </div>
+        </div>
+        <div id="impPreview" class="mb-3"></div>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <button class="btn btn-dark" id="btnImpCheck" onclick="A.importCheck()" disabled>🔍 ตรวจสอบก่อน (ยังไม่บันทึก)</button>
+          <button class="btn btn-success" id="btnImpCommit" onclick="A.importCommit()" disabled>✅ ยืนยันนำเข้า</button>
+          <button class="btn btn-outline-danger ms-auto" onclick="A.importPurge()">🗑 ล้างข้อมูลที่นำเข้า (เพื่อนำเข้าใหม่)</button>
+        </div>
+        <div id="impReport"></div>
+      </div>
+    </div>
+
+  </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/th.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.12.4/dist/sweetalert2.all.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+
+<script>
+// ============ ตั้งค่า (anon key เปิดเผยได้ ความปลอดภัยอยู่ที่ล็อกอิน + RLS) ============
+// ห้ามใส่ service_role key ที่นี่เด็ดขาด
+const CFG = {
+  SUPABASE_URL: 'ใส่_SUPABASE_URL_ที่นี่',
+  SUPABASE_ANON: 'ใส่_ANON_KEY_ที่นี่'
+};
+
+// ============ ฟังก์ชันล้วน (ไม่แตะหน้าเว็บ) ============
+// <pure>
+const MONTHS = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+function e(s) {
+  return String(s === null || s === undefined ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function B(n) {
+  return (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function localISO(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function formatThaiDateFull(raw) {
+  if (!raw) return '-';
+  let y, m, d;
+  if (raw instanceof Date) { y = raw.getFullYear(); m = raw.getMonth() + 1; d = raw.getDate(); }
+  else {
+    const mt = String(raw).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!mt) return String(raw);
+    y = +mt[1]; m = +mt[2]; d = +mt[3];
+  }
+  if (y < 2400) y += 543;
+  return d + ' ' + MONTHS[m - 1] + ' ' + y;
+}
+function calcTimeDiff(startVal, endVal) {   // ใช้แสดงตัวอย่างเท่านั้น (ฐานข้อมูลคิดจริง)
+  if (!startVal || !endVal) return 0;
+  const toMin = t => { const p = t.split(':'); return (+p[0]) * 60 + (+p[1]); };
+  let diff = toMin(endVal) - toMin(startVal);
+  if (diff < 0) diff += 1440;
+  return diff / 60;
+}
+function parseCSV(text) {
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  const rows = []; let row = [], cur = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; }
+      else cur += c;
+    } else if (c === '"') q = true;
+    else if (c === ',') { row.push(cur); cur = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      row.push(cur); rows.push(row); row = []; cur = '';
+    } else cur += c;
+  }
+  if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+  return rows;
+}
+function normHeader(h) { return String(h || '').trim().toLowerCase().replace(/[\s\-]+/g, '_'); }
+// </pure>
+
+// ============ สถานะ / ข้อมูล / actions ============
+const S = { tab: '', user: null, role: null, name: '', editId: '', editEntry: null, editAlId: '', company: 'บริษัท OT ANVA & Co., Ltd.', locks: new Set(), sumYm: '' };
+const D = { emps: [], empById: {}, hist: [], allow: [], users: [] };
+const A = {};
+let sb, currentHourlyRate = 0;
+let historyDataTable, allowanceDataTable, summaryOtDataTable, summaryAllowDataTable, empDataTable, userDataTable;
+const IMP = {
+  emp: { rpc: 'import_employees', req: ['emp_id', 'full_name', 'emp_type', 'base_rate'], cols: ['emp_id', 'full_name', 'department', 'emp_type', 'base_rate'], purge: null, label: 'พนักงาน' },
+  ot:  { rpc: 'import_ot', req: ['ot_date', 'emp_id', 'ot_multiplier', 'total_amount_baht'], cols: ['ot_date', 'emp_id', 'full_name', 'before_hrs', 'after_hrs', 'total_hrs', 'ot_multiplier', 'total_amount_baht', 'site_name', 'remark'], purge: 'ot', label: 'OT' },
+  al:  { rpc: 'import_allowance', req: ['date', 'emp_id', 'amount_baht'], cols: ['date', 'emp_id', 'full_name', 'amount_baht', 'remark'], purge: 'allowance', label: 'เบี้ยขยัน' }
+};
+let impRows = null, impChecked = false;
+
+const canEdit = () => ['owner', 'manager', 'hr'].includes(S.role);
+const canManage = () => ['owner', 'manager'].includes(S.role);
+const isOwner = () => S.role === 'owner';
+
+async function Q(promise) {
+  const { data, error } = await promise;
+  if (error) throw error;
+  return data;
+}
+function errMsg(err) { return (err && err.message) ? err.message : String(err); }
+function def(obj) {
+  Object.keys(obj).forEach(k => {
+    const fn = obj[k];
+    A[k] = async function () {
+      try { return await fn.apply(null, arguments); }
+      catch (err) { console.error(err); Swal.fire('ผิดพลาด', errMsg(err), 'error'); }
+    };
+  });
+}
+async function fetchAll(mk) {
+  let all = [], from = 0;
+  for (;;) {
+    const d = await Q(mk().range(from, from + 999));
+    all = all.concat(d);
+    if (d.length < 1000) break;
+    from += 1000;
+  }
+  return all;
+}
+function empRate(emp) {
+  const b = Number(emp.base_rate) || 0;
+  return emp.emp_type === 'รายเดือน' ? b / 30 / 8 : emp.emp_type === 'รายวัน' ? b / 8 : 0;
+}
+const thaiPeriod = (m, yThai) => 'ประจำเดือน: ' + MONTHS[m - 1] + ' พ.ศ. ' + yThai;
+
+// ============ เริ่มระบบ ============
+$(async function () {
+  if (!CFG.SUPABASE_URL || CFG.SUPABASE_URL.indexOf('ใส่_') === 0 || CFG.SUPABASE_ANON.indexOf('ใส่_') === 0) {
+    $('#view-config').removeClass('d-none'); return;
+  }
+  sb = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON);
+  const now = new Date();
+  $('.month-select').html(MONTHS.map((n, i) => `<option value="${i + 1}">${n}</option>`).join('')).val(now.getMonth() + 1);
+  $('#histFilterYearThai, #sumFilterYearThai').val(now.getFullYear() + 543);   // เดือน/ปีปัจจุบัน
+
+  initPickers();
+  setupDataTables();
+  bindForms();
+  sb.auth.onAuthStateChange(function (evt) { if (evt === 'SIGNED_OUT') showLogin(); });
+  const { data } = await sb.auth.getSession();
+  if (data.session) await enterApp(); else showLogin();
+});
+
+function showLogin(msg) {
+  $('#view-app').addClass('d-none'); $('#view-login').removeClass('d-none');
+  $('#loginMsg').text(msg || ''); $('#loginPass').val('');
+  document.body.dataset.tab = '';
+}
+
+async function enterApp() {
+  try {
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) return showLogin();
+    S.user = user;
+    const prof = await Q(sb.from('profiles').select('role,active,full_name').eq('user_id', user.id).maybeSingle());
+    if (!prof || !prof.active) {
+      await sb.auth.signOut();
+      return showLogin('บัญชีนี้ยังไม่ได้รับสิทธิ์ใช้งาน กรุณาติดต่อเจ้าของระบบ');
+    }
+    S.role = prof.role; S.name = prof.full_name || user.email;
+    const st = await Q(sb.from('settings').select('value').eq('key', 'company_name').maybeSingle());
+    if (st && st.value) S.company = st.value;
+    $('.company-name').text(S.company);
+    $('#whoami').text(S.name + ' (' + S.role + ')');
+    $('#view-login').addClass('d-none'); $('#view-app').removeClass('d-none');
+    applyRole();
+    await Promise.all([loadEmployeesData(), loadLocks()]);
+    switchTab(canEdit() ? 'form' : 'history');
+  } catch (err) {
+    console.error(err);
+    Swal.fire('ผิดพลาด', errMsg(err), 'error');
+    showLogin();
+  }
+}
+
+function applyRole() {
+  $('#nav-form').toggleClass('d-none', !canEdit());
+  $('#nav-users, #nav-import').toggleClass('d-none', !isOwner());
+  $('#allowFormCard').toggleClass('d-none', !canEdit());
+  $('#btnAddEmp').toggleClass('d-none', !canManage());
+  $('#lockBox').toggleClass('d-none', !isOwner());
+  historyDataTable.column(7).visible(canEdit());
+  allowanceDataTable.column(5).visible(canEdit());
+  empDataTable.column(7).visible(canManage());
+}
+
+async function loadLocks() {
+  const rows = await Q(sb.from('period_locks').select('ym'));
+  S.locks = new Set(rows.map(r => r.ym));
+}
+async function loadEmployeesData() {
+  D.emps = await fetchAll(() => sb.from('employees').select('*').order('emp_code'));
+  D.empById = {}; D.emps.forEach(x => D.empById[x.id] = x);
+  initEmpSelects();
+}
+
+// ============ ตัวเลือกวันที่/เวลา/พนักงาน ============
+function initDate(sel, isoSel) {
+  return flatpickr(sel, {
+    locale: 'th', dateFormat: 'Y-m-d', defaultDate: new Date(),     // วันนี้ตามเวลาท้องถิ่น (ไม่ใช้ UTC)
+    formatDate: d => formatThaiDateFull(d),
+    onReady: sd => { if (sd[0]) $(isoSel).val(localISO(sd[0])); },
+    onChange: sd => { $(isoSel).val(sd[0] ? localISO(sd[0]) : ''); }
+  });
+}
+function setDateISO(sel, iso) {
+  const p = iso.split('-');
+  document.querySelector(sel)._flatpickr.setDate(new Date(+p[0], +p[1] - 1, +p[2]), true);
+}
+function initPickers() {
+  initDate('#otDate', '#otDateISO');
+  initDate('#alDate', '#alDateISO');
+  flatpickr('.time-picker', { enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true });
+}
+function setTime(sel, val) {
+  const fp = document.querySelector(sel)._flatpickr;
+  if (val) fp.setDate(val, false); else fp.clear(false);
+}
+function initEmpSelects() {
+  const data = D.emps.map(x => ({ id: x.id, text: x.emp_code + ' - ' + x.full_name + (x.active ? '' : ' (ปิดใช้งาน)'), disabled: !x.active }));
+  ['#empSearch', '#alEmpSearch'].forEach(sel => {
+    const $s = $(sel);
+    if ($s.hasClass('select2-hidden-accessible')) $s.select2('destroy');
+    $s.empty().append('<option value=""></option>').select2({ data: data, placeholder: 'ค้นหาชื่อ หรือ รหัสพนักงาน...', width: '100%', allowClear: true });
+  });
+}
+function showRate(emp, hourly) {
+  $('#showEmpType').val(emp ? emp.emp_type : '-');
+  $('#showHourlyRate').val(emp ? hourly.toFixed(2) + ' ฿ / ชม.' : '0.00 ฿');
+}
+function calcTotal() {
+  const hrs = calcTimeDiff($('#bStart').val(), $('#bEnd').val()) + calcTimeDiff($('#aStart').val(), $('#aEnd').val());
+  $('#totalHrs').val(hrs > 0 ? hrs.toFixed(2) : '');
+  const mult = parseFloat($('#otMultiplier').val()) || 1;
+  const amt = currentHourlyRate * mult * hrs;
+  $('#totalAmount').val(amt > 0 ? amt.toFixed(2) : '0.00');
+}
+
+// ============ DataTables ============
+const TH_LANG = {
+  search: 'ค้นหา:', lengthMenu: 'แสดง _MENU_ รายการ', info: 'แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ',
+  infoEmpty: 'ไม่มีข้อมูล', infoFiltered: '(กรองจาก _MAX_ รายการ)', zeroRecords: 'ไม่พบข้อมูลที่ตรงกัน',
+  emptyTable: 'ไม่มีข้อมูล', paginate: { first: 'หน้าแรก', last: 'หน้าสุดท้าย', next: 'ถัดไป', previous: 'ก่อนหน้า' }
+};
+const sumCol = (api, i) => api.column(i, { search: 'applied' }).data().reduce((a, b) => a + (parseFloat(b) || 0), 0);
+const fmtThousand = n => n.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+const escRender = (d, t) => t === 'display' ? e(d) : d;
+const dateRender = (d, t) => (t === 'display' || t === 'filter') ? formatThaiDateFull(d) : d;
+const moneyRender = (d, t) => t === 'display' ? B(d) : d;
+const hrsRender = (d, t) => t === 'display' ? Number(d).toFixed(2) : d;
+
+function setupDataTables() {
+  const lockIcon = '<i class="fas fa-lock text-secondary" title="งวดนี้ถูกล็อกแล้ว"></i>';
+  historyDataTable = $('#historyTable').DataTable({
+    language: TH_LANG, order: [[0, 'asc']],
+    columnDefs: [
+      { targets: 0, render: dateRender },
+      { visible: false, targets: 1 },
+      { targets: [2, 3], render: escRender },
+      { className: 'num-align', targets: [4, 5, 6] },
+      { targets: 5, render: hrsRender },
+      { targets: 6, render: moneyRender },
+      { className: 'text-center action-col', targets: 7, orderable: false, searchable: false, render: function (d, t, row) {
+          if (t !== 'display') return '';
+          if (S.locks.has(String(row[0]).slice(0, 7))) return lockIcon;
+          return `<i class="fas fa-edit action-icons edit" onclick="A.editOT('${e(d)}')"></i>` +
+                 (canManage() ? `<i class="fas fa-trash action-icons delete" onclick="A.deleteOT('${e(d)}')"></i>` : '');
+        } }
+    ],
+    footerCallback: function () {
+      const api = this.api();
+      $('#histTotalHrs').html(sumCol(api, 5).toFixed(2));
+      $('#histTotalMoney').html(fmtThousand(sumCol(api, 6)));
+    }
+  });
+  allowanceDataTable = $('#allowanceTable').DataTable({
+    language: TH_LANG, order: [[0, 'desc']],
+    columnDefs: [
+      { targets: 0, render: dateRender },
+      { visible: false, targets: 1 },
+      { targets: [2, 4], render: escRender },
+      { className: 'num-align', targets: 3, render: moneyRender },
+      { className: 'text-center action-col', targets: 5, orderable: false, searchable: false, render: function (d, t, row) {
+          if (t !== 'display') return '';
+          if (S.locks.has(String(row[0]).slice(0, 7))) return lockIcon;
+          return `<i class="fas fa-edit action-icons edit" onclick="A.editAl('${e(d)}')"></i>` +
+                 (canManage() ? `<i class="fas fa-trash action-icons delete" onclick="A.deleteAl('${e(d)}')"></i>` : '');
+        } }
+    ]
+  });
+  summaryOtDataTable = $('#summaryOtTable').DataTable({
+    language: TH_LANG, paging: false, searching: true, info: true,
+    columnDefs: [
+      { targets: [0, 1], render: escRender },
+      { className: 'num-align', targets: [2, 3] },
+      { targets: 2, render: hrsRender },
+      { targets: 3, render: moneyRender }
+    ],
+    footerCallback: function () {
+      const api = this.api();
+      $('#sumTotalHrs').html(sumCol(api, 2).toFixed(2));
+      $('#sumTotalOtMoney').html(fmtThousand(sumCol(api, 3)));
+    }
+  });
+  summaryAllowDataTable = $('#summaryAllowTable').DataTable({
+    language: TH_LANG, paging: false, searching: true, info: true,
+    columnDefs: [
+      { targets: [0, 1], render: escRender },
+      { className: 'num-align', targets: 2, render: moneyRender }
+    ],
+    footerCallback: function () {
+      $('#sumTotalAllowMoney').html(fmtThousand(sumCol(this.api(), 2)));
+    }
+  });
+  empDataTable = $('#empTable').DataTable({
+    language: TH_LANG, order: [[0, 'asc']],
+    columnDefs: [
+      { targets: [0, 1, 2, 3], render: escRender },
+      { className: 'num-align', targets: [4, 5] },
+      { targets: [4, 5], render: moneyRender },
+      { targets: 6, render: (d, t) => t === 'display' ? (d ? '<span class="badge bg-success">ใช้งาน</span>' : '<span class="badge bg-secondary">ปิดใช้งาน</span>') : d },
+      { className: 'text-center action-col', targets: 7, orderable: false, searchable: false, render: function (d, t) {
+          if (t !== 'display') return '';
+          return `<i class="fas fa-edit action-icons edit" onclick="A.empForm('${e(d)}')"></i>` +
+                 (isOwner() ? `<i class="fas fa-trash action-icons delete" onclick="A.deleteEmp('${e(d)}')"></i>` : '');
+        } }
+    ]
+  });
+  userDataTable = $('#userTable').DataTable({
+    language: TH_LANG, order: [[0, 'asc']],
+    columnDefs: [
+      { targets: [0, 1], render: escRender },
+      { targets: 2, render: (d, t) => t === 'display' ? (d ? e(d) : '<span class="text-danger">ยังไม่มีสิทธิ์</span>') : d },
+      { targets: 3, render: (d, t) => t === 'display' ? (d === null ? '-' : d ? '<span class="badge bg-success">ใช้งาน</span>' : '<span class="badge bg-secondary">ปิด</span>') : d },
+      { targets: 4, render: (d, t) => (t === 'display' && d) ? e(new Date(d).toLocaleString('th-TH')) : (d || '') },
+      { className: 'text-center', targets: 5, orderable: false, searchable: false, render: (d, t) => t === 'display' ? `<button class="btn btn-sm btn-outline-primary" onclick="A.editUser('${e(d)}')">กำหนดสิทธิ์</button>` : '' }
+    ]
+  });
+}
+
+// ============ สลับแท็บ ============
+function switchTab(tabId) {
+  const allowed = { form: canEdit(), history: true, summary: true, allowance: true, employees: true, users: isOwner(), import: isOwner() };
+  if (!allowed[tabId]) return;
+  S.tab = tabId; document.body.dataset.tab = tabId;
+  $('.app-tab').hide();
+  $('.nav-link').removeClass('active');
+  $('#tab-' + tabId).fadeIn(250);
+  $('#nav-' + tabId).addClass('active');
+  const c = bootstrap.Collapse.getInstance(document.getElementById('navMenu')); if (c) c.hide();
+  if (tabId === 'history') A.loadHistory();
+  if (tabId === 'summary') A.loadSummary();
+  if (tabId === 'allowance') A.loadAllowance();
+  if (tabId === 'employees') A.loadEmployees();
+  if (tabId === 'users') A.loadUsers();
+  setTimeout(() => $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust(), 300);
+}
+
+// ============ ฟอร์ม ============
+function bindForms() {
+  $('#loginForm').on('submit', function (ev) { ev.preventDefault(); A.login(); });
+  $('#otForm').on('submit', function (ev) { ev.preventDefault(); A.saveOT(); });
+  $('#allowanceForm').on('submit', function (ev) { ev.preventDefault(); A.saveAllowance(); });
+
+  $('#empSearch').on('select2:select', function (ev) {
+    const emp = D.empById[ev.params.data.id];
+    if (!emp) return;
+    const same = S.editEntry && S.editEntry.employeeId === emp.id;
+    currentHourlyRate = same ? Number(S.editEntry.hourlyRate) : empRate(emp);   // แก้ไขคนเดิม = ใช้เรทที่บันทึกไว้
+    showRate(emp, currentHourlyRate);
+    calcTotal();
+  });
+  $('#empSearch').on('select2:clear', function () { currentHourlyRate = 0; showRate(null, 0); calcTotal(); });
+}
+
+function setOtBtn() {
+  const edit = !!S.editId;
+  $('#btnSubmit').prop('disabled', false).text(edit ? '🔄 อัปเดตข้อมูล' : '💾 บันทึก OT เข้าสู่ระบบ');
+}
+function resetForm() {
+  S.editId = ''; S.editEntry = null; $('#editId').val('');
+  ['#bStart', '#bEnd', '#aStart', '#aEnd'].forEach(s => setTime(s, null));
+  $('#totalHrs, #totalAmount, #remark, #site').val('');
+  $('#totalAmount').val('0.00');
+  $('#empSearch').val(null).trigger('change');
+  showRate(null, 0); currentHourlyRate = 0;
+  $('#formOTTitle').text('ระบบบันทึกคำขออนุมัติทำงานล่วงเวลา (OT)').removeClass('text-warning').addClass('text-primary');
+  $('#btnSubmit').removeClass('btn-warning').addClass('btn-primary');
+  $('#btnCancelEdit').addClass('d-none');
+  setOtBtn();
+}
+function resetAlForm() {
+  S.editAlId = ''; $('#editAlId').val('');
+  $('#alAmount, #alRemark').val('');
+  $('#alEmpSearch').val(null).trigger('change');
+  $('#formAlTitle').html('<i class="fas fa-coins"></i> ระบบบันทึกเบี้ยขยันพนักงาน').removeClass('text-warning').addClass('text-info');
+  $('#btnSubmitAl').removeClass('btn-warning').addClass('btn-info').prop('disabled', false).text('💾 บันทึกเบี้ยขยัน');
+  $('#btnCancelAlEdit').addClass('d-none');
+}
+async function confirmDelete(text) {
+  const r = await Swal.fire({ title: 'ยืนยันการลบข้อมูล?', text: text, icon: 'warning', showCancelButton: true,
+    confirmButtonColor: '#d33', cancelButtonColor: '#3085d6', confirmButtonText: 'ใช่, ลบเลย!', cancelButtonText: 'ยกเลิก' });
+  return r.isConfirmed;
+}
+
+// ============ Actions ============
+def({
+  login: async function () {
+    $('#btnLogin').prop('disabled', true).text('กำลังเข้าสู่ระบบ...');
+    try {
+      const { error } = await sb.auth.signInWithPassword({ email: $('#loginEmail').val().trim(), password: $('#loginPass').val() });
+      if (error) { $('#loginMsg').text('อีเมลหรือรหัสผ่านไม่ถูกต้อง'); return; }
+      $('#loginMsg').text('');
+      await enterApp();
+    } finally { $('#btnLogin').prop('disabled', false).text('เข้าสู่ระบบ'); }
+  },
+  logout: async function () { await sb.auth.signOut(); showLogin(); },
+
+  // ---------- OT ----------
+  saveOT: async function () {
+    const empId = $('#empSearch').val();
+    if (!empId) return Swal.fire('แจ้งเตือน', 'กรุณาเลือกพนักงาน', 'warning');
+    if (!$('#site').val().trim()) return Swal.fire('แจ้งเตือน', 'กรุณาระบุ Site งาน', 'warning');
+    const id = S.editId;
+    const args = {
+      p_date: $('#otDateISO').val(), p_employee_id: empId,
+      p_before_start: $('#bStart').val() || null, p_before_end: $('#bEnd').val() || null,
+      p_after_start: $('#aStart').val() || null, p_after_end: $('#aEnd').val() || null,
+      p_multiplier: parseFloat($('#otMultiplier').val()),
+      p_site: $('#site').val().trim(), p_remark: $('#remark').val().trim() || null
+    };
+    $('#btnSubmit').prop('disabled', true).text('กำลังบันทึกข้อมูล...');
+    try {
+      if (id) await Q(sb.rpc('update_ot', Object.assign({ p_id: id }, args)));
+      else await Q(sb.rpc('save_ot', args));
+      Swal.fire('สำเร็จ!', id ? 'อัปเดตข้อมูลเรียบร้อย' : 'บันทึกข้อมูลเรียบร้อย', 'success');
+      resetForm();
+    } finally { setOtBtn(); }
+  },
+  cancelEdit: function () { resetForm(); Swal.fire('ยกเลิก', 'ยกเลิกการแก้ไขข้อมูลแล้ว', 'info'); },
+  editOT: function (id) {
+    const r = D.hist.find(x => x.id === id);
+    if (!r) return;
+    switchTab('form');
+    S.editId = id; S.editEntry = r; $('#editId').val(id);
+    $('#formOTTitle').text('แก้ไขข้อมูล OT').removeClass('text-primary').addClass('text-warning');
+    $('#btnSubmit').removeClass('btn-primary').addClass('btn-warning');
+    $('#btnCancelEdit').removeClass('d-none');
+    setOtBtn();
+    setDateISO('#otDate', r.date);
+    $('#empSearch').val(r.employeeId).trigger('change');
+    $('#otMultiplier').val(Number(r.multiplier).toFixed(1));
+    $('#site').val(r.site); $('#remark').val(r.remark || '');
+    setTime('#bStart', r.bStart); setTime('#bEnd', r.bEnd); setTime('#aStart', r.aStart); setTime('#aEnd', r.aEnd);
+    currentHourlyRate = Number(r.hourlyRate);
+    showRate({ emp_type: r.empType }, currentHourlyRate);
+    calcTotal();
+    const noTimes = !r.bStart && !r.aStart;
+    Swal.fire('โหมดแก้ไข', noTimes
+      ? 'รายการนี้นำเข้าจาก Sheet เดิม ไม่มีเวลาเริ่ม-สิ้นสุดเก็บไว้ (เดิม ' + Number(r.totalHrs).toFixed(2) + ' ชม.) กรุณากรอกเวลาใหม่ก่อนกดอัปเดต'
+      : 'กรุณาอัปเดตข้อมูลและกดอัปเดต', noTimes ? 'warning' : 'info');
+  },
+  deleteOT: async function (id) {
+    if (!await confirmDelete('ข้อมูลจะถูกลบออกจากฐานข้อมูลอย่างถาวร! (มีบันทึกใน audit log)')) return;
+    await Q(sb.rpc('delete_ot', { p_id: id }));
+    Swal.fire('ลบแล้ว!', 'ข้อมูลถูกลบเรียบร้อย', 'success');
+    A.loadHistory();
+  },
+  loadHistory: async function () {
+    const m = +$('#histFilterMonth').val(), yThai = +$('#histFilterYearThai').val();
+    if (!(yThai >= 2500 && yThai <= 2700)) return Swal.fire('แจ้งเตือน', 'กรุณาใส่ปี พ.ศ. ให้ถูกต้อง (เช่น 2569)', 'warning');
+    $('#printDateHist').text(thaiPeriod(m, yThai));
+    Swal.showLoading();
+    try {
+      const res = await Q(sb.rpc('ot_history', { p_year: yThai - 543, p_month: m }));
+      D.hist = res.rows;
+      historyDataTable.clear();
+      res.rows.forEach(r => historyDataTable.row.add([r.date, r.empCode, r.empName, r.site,
+        Number(r.multiplier), Number(r.totalHrs), Number(r.totalAmount), r.id]));
+      historyDataTable.draw();
+    } finally { Swal.close(); }
+  },
+
+  // ---------- เบี้ยขยัน ----------
+  saveAllowance: async function () {
+    const empId = $('#alEmpSearch').val();
+    if (!empId) return Swal.fire('แจ้งเตือน', 'กรุณาเลือกพนักงาน', 'warning');
+    const id = S.editAlId;
+    const args = { p_date: $('#alDateISO').val(), p_employee_id: empId,
+      p_amount: parseFloat($('#alAmount').val()), p_remark: $('#alRemark').val().trim() || null };
+    $('#btnSubmitAl').prop('disabled', true).text('กำลังบันทึก...');
+    try {
+      if (id) await Q(sb.rpc('update_allowance', Object.assign({ p_id: id }, args)));
+      else await Q(sb.rpc('save_allowance', args));
+      Swal.fire('สำเร็จ!', id ? 'อัปเดตเบี้ยขยันเรียบร้อย' : 'บันทึกเบี้ยขยันเรียบร้อย', 'success');
+      resetAlForm();
+      A.loadAllowance();
+    } finally { $('#btnSubmitAl').prop('disabled', false).text(S.editAlId ? '🔄 อัปเดตข้อมูล' : '💾 บันทึกเบี้ยขยัน'); }
+  },
+  cancelAlEdit: function () { resetAlForm(); },
+  loadAllowance: async function () {
+    Swal.showLoading();
+    try {
+      D.allow = await fetchAll(() => sb.from('allowances').select('*').order('allow_date', { ascending: false }).order('created_at', { ascending: false }));
+      allowanceDataTable.clear();
+      D.allow.forEach(r => allowanceDataTable.row.add([r.allow_date, r.emp_code, r.emp_name, Number(r.amount), r.remark || '', r.id]));
+      allowanceDataTable.draw();
+    } finally { Swal.close(); }
+  },
+  editAl: function (id) {
+    const r = D.allow.find(x => x.id === id);
+    if (!r) return;
+    S.editAlId = id; $('#editAlId').val(id);
+    $('#formAlTitle').html('<i class="fas fa-edit"></i> แก้ไขข้อมูลเบี้ยขยัน').removeClass('text-info').addClass('text-warning');
+    $('#btnSubmitAl').removeClass('btn-info').addClass('btn-warning').text('🔄 อัปเดตข้อมูล');
+    $('#btnCancelAlEdit').removeClass('d-none');
+    setDateISO('#alDate', r.allow_date);
+    $('#alEmpSearch').val(r.employee_id).trigger('change');
+    $('#alAmount').val(r.amount); $('#alRemark').val(r.remark || '');
+    $('html, body').animate({ scrollTop: $('#tab-allowance').offset().top - 100 }, 500);
+  },
+  deleteAl: async function (id) {
+    if (!await confirmDelete('ข้อมูลเบี้ยขยันจะถูกลบอย่างถาวร! (มีบันทึกใน audit log)')) return;
+    await Q(sb.rpc('delete_allowance', { p_id: id }));
+    Swal.fire('ลบแล้ว!', 'ข้อมูลถูกลบเรียบร้อย', 'success');
+    A.loadAllowance();
+  },
+
+  // ---------- สรุปรายเดือน + ล็อกงวด ----------
+  loadSummary: async function () {
+    const m = +$('#sumFilterMonth').val(), yThai = +$('#sumFilterYearThai').val();
+    if (!(yThai >= 2500 && yThai <= 2700)) return Swal.fire('แจ้งเตือน', 'กรุณาใส่ปี พ.ศ. ให้ถูกต้อง (เช่น 2569)', 'warning');
+    $('#printPeriodSummary').text(thaiPeriod(m, yThai));
+    S.sumYm = (yThai - 543) + '-' + String(m).padStart(2, '0');
+    Swal.showLoading();
+    try {
+      const res = await Q(sb.rpc('month_summary', { p_year: yThai - 543, p_month: m }));
+      summaryOtDataTable.clear(); summaryAllowDataTable.clear();
+      res.otRows.forEach(r => summaryOtDataTable.row.add([r.empCode, r.empName, Number(r.otHrs), Number(r.otMoney)]));
+      res.allowRows.forEach(r => summaryAllowDataTable.row.add([r.empCode, r.empName, Number(r.allowMoney)]));
+      summaryOtDataTable.draw(); summaryAllowDataTable.draw();
+      updateLockUI();
+    } finally { Swal.close(); }
+  },
+  lockPeriod: async function () {
+    const r = await Swal.fire({ title: 'ล็อกงวด ' + S.sumYm + '?', text: 'หลังล็อก จะเพิ่ม/แก้ไข/ลบ OT และเบี้ยขยันของเดือนนี้ไม่ได้ จนกว่าเจ้าของระบบจะปลดล็อก', icon: 'question', showCancelButton: true, confirmButtonText: 'ล็อกงวด', cancelButtonText: 'ยกเลิก' });
+    if (!r.isConfirmed) return;
+    await Q(sb.rpc('lock_period', { p_ym: S.sumYm }));
+    await loadLocks(); updateLockUI();
+  },
+  unlockPeriod: async function () {
+    const r = await Swal.fire({ title: 'ปลดล็อกงวด ' + S.sumYm + '?', icon: 'warning', showCancelButton: true, confirmButtonText: 'ปลดล็อก', cancelButtonText: 'ยกเลิก' });
+    if (!r.isConfirmed) return;
+    await Q(sb.rpc('unlock_period', { p_ym: S.sumYm }));
+    await loadLocks(); updateLockUI();
+  },
+
+  // ---------- Excel ----------
+  exportExcel: function (type) {
+    const wb = XLSX.utils.book_new();
+    const co = S.company;
+    if (type === 'summary') {
+      const m = $('#sumFilterMonth option:selected').text(), y = $('#sumFilterYearThai').val();
+      const ot = summaryOtDataTable.rows({ search: 'applied', order: 'applied' }).data().toArray();
+      const w1 = [[co], ['รายงานสรุปยอดเงินค่าตอบแทนล่วงเวลา (OT) ประจำเดือน ' + m + ' พ.ศ. ' + y], [],
+        ['ลำดับ', 'รหัสพนักงาน', 'ชื่อ-นามสกุล', 'ชั่วโมง OT', 'ยอดเงิน OT (บาท)']];
+      let sh = 0, sm = 0;
+      ot.forEach((r, i) => { const h = +r[2] || 0, mo = +r[3] || 0; sh += h; sm += mo; w1.push([i + 1, r[0], r[1], h, mo]); });
+      w1.push(['', '', 'รวมทั้งสิ้น', sh, sm]);
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(w1), 'สรุป OT');
+      const al = summaryAllowDataTable.rows({ search: 'applied', order: 'applied' }).data().toArray();
+      const w2 = [[co], ['รายงานสรุปเบี้ยขยัน ประจำเดือน ' + m + ' พ.ศ. ' + y], [],
+        ['ลำดับ', 'รหัสพนักงาน', 'ชื่อ-นามสกุล', 'เบี้ยขยัน (บาท)']];
+      let sa = 0;
+      al.forEach((r, i) => { const v = +r[2] || 0; sa += v; w2.push([i + 1, r[0], r[1], v]); });
+      w2.push(['', '', 'รวมทั้งสิ้น', sa]);
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(w2), 'สรุปเบี้ยขยัน');
+      XLSX.writeFile(wb, 'รายงานสรุปค่าตอบแทน_' + m + '_' + y + '.xlsx');
+    } else {
+      const m = $('#histFilterMonth option:selected').text(), y = $('#histFilterYearThai').val();
+      const rows = historyDataTable.rows({ search: 'applied', order: 'applied' }).data().toArray();
+      const w = [[co], ['รายงานประวัติการปฏิบัติงานล่วงเวลา ประจำเดือน ' + m + ' พ.ศ. ' + y], [],
+        ['ลำดับ', 'วันที่ทำ OT', 'รหัสพนักงาน', 'ชื่อ-นามสกุล', 'Site งาน', 'เรทคูณ', 'ชั่วโมง (ชม.)', 'ยอดเงิน (บาท)']];
+      let sh = 0, sm = 0;
+      rows.forEach((r, i) => { const h = +r[5] || 0, mo = +r[6] || 0; sh += h; sm += mo;
+        w.push([i + 1, formatThaiDateFull(r[0]), r[1], r[2], r[3], +r[4], h, mo]); });
+      w.push(['', '', '', '', '', 'รวมทั้งสิ้น', sh, sm]);
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(w), 'History');
+      XLSX.writeFile(wb, 'รายงานประวัติ_OT_' + m + '_' + y + '.xlsx');
+    }
+  },
+
+  // ---------- พนักงาน ----------
+  loadEmployees: async function () {
+    await loadEmployeesData();
+    empDataTable.clear();
+    D.emps.forEach(x => empDataTable.row.add([x.emp_code, x.full_name, x.department || '', x.emp_type,
+      Number(x.base_rate), empRate(x), x.active, x.id]));
+    empDataTable.draw();
+  },
+  empForm: async function (id) {
+    if (!canManage()) return;
+    const x = id ? D.empById[id] : { emp_code: '', full_name: '', department: '', emp_type: 'รายวัน', base_rate: 0, active: true };
+    const r = await Swal.fire({
+      title: id ? 'แก้ไขพนักงาน' : 'เพิ่มพนักงาน', focusConfirm: false, showCancelButton: true,
+      confirmButtonText: 'บันทึก', cancelButtonText: 'ยกเลิก',
+      html: `<div class="text-start">
+        <label class="form-label fw-bold mt-2">รหัสพนักงาน</label><input id="sw_code" class="form-control" value="${e(x.emp_code)}" ${id ? 'readonly' : ''}>
+        <label class="form-label fw-bold mt-2">ชื่อ-นามสกุล</label><input id="sw_name" class="form-control" value="${e(x.full_name)}">
+        <label class="form-label fw-bold mt-2">แผนก</label><input id="sw_dept" class="form-control" value="${e(x.department)}">
+        <label class="form-label fw-bold mt-2">ประเภทการจ้าง</label>
+        <select id="sw_type" class="form-select"><option ${x.emp_type === 'รายวัน' ? 'selected' : ''}>รายวัน</option><option ${x.emp_type === 'รายเดือน' ? 'selected' : ''}>รายเดือน</option></select>
+        <label class="form-label fw-bold mt-2">อัตราจ้าง (บาท/วัน หรือ บาท/เดือน)</label><input id="sw_rate" type="number" step="0.01" min="0" class="form-control" value="${e(x.base_rate)}">
+        <div class="form-check mt-3"><input id="sw_active" type="checkbox" class="form-check-input" ${x.active ? 'checked' : ''}><label class="form-check-label" for="sw_active">เปิดใช้งาน</label></div>
+      </div>`,
+      preConfirm: () => {
+        const g = i => document.getElementById(i);
+        const v = { p_id: id || null, p_emp_code: g('sw_code').value.trim(), p_full_name: g('sw_name').value.trim(),
+          p_department: g('sw_dept').value.trim() || null, p_emp_type: g('sw_type').value,
+          p_base_rate: parseFloat(g('sw_rate').value), p_active: g('sw_active').checked };
+        if (!v.p_emp_code || !v.p_full_name) { Swal.showValidationMessage('กรุณากรอกรหัสและชื่อ'); return false; }
+        if (isNaN(v.p_base_rate) || v.p_base_rate < 0) { Swal.showValidationMessage('อัตราจ้างไม่ถูกต้อง'); return false; }
+        return v;
+      }
+    });
+    if (!r.isConfirmed) return;
+    await Q(sb.rpc('save_employee', r.value));
+    Swal.fire('สำเร็จ!', 'บันทึกข้อมูลพนักงานเรียบร้อย', 'success');
+    A.loadEmployees();
+  },
+  deleteEmp: async function (id) {
+    if (!await confirmDelete('ลบได้เฉพาะพนักงานที่ไม่มีประวัติ OT/เบี้ยขยัน (ถ้ามีประวัติให้ปิดการใช้งานแทน)')) return;
+    await Q(sb.rpc('delete_employee', { p_id: id }));
+    Swal.fire('ลบแล้ว!', '', 'success');
+    A.loadEmployees();
+  },
+
+  // ---------- ผู้ใช้งาน ----------
+  loadUsers: async function () {
+    D.users = await Q(sb.rpc('list_users'));
+    userDataTable.clear();
+    D.users.forEach(u => userDataTable.row.add([u.email, u.fullName || '', u.role, u.active, u.lastSignIn, u.userId]));
+    userDataTable.draw();
+  },
+  editUser: async function (id) {
+    const u = D.users.find(x => x.userId === id);
+    if (!u) return;
+    const roles = ['owner', 'manager', 'hr', 'viewer'];
+    const r = await Swal.fire({
+      title: 'กำหนดสิทธิ์: ' + u.email, focusConfirm: false, showCancelButton: true,
+      confirmButtonText: 'บันทึก', cancelButtonText: 'ยกเลิก',
+      html: `<div class="text-start">
+        <label class="form-label fw-bold mt-2">ชื่อที่แสดง</label><input id="sw_uname" class="form-control" value="${e(u.fullName)}">
+        <label class="form-label fw-bold mt-2">สิทธิ์</label>
+        <select id="sw_role" class="form-select">${roles.map(x => `<option ${(u.role || 'viewer') === x ? 'selected' : ''}>${x}</option>`).join('')}</select>
+        <div class="form-check mt-3"><input id="sw_uactive" type="checkbox" class="form-check-input" ${u.active === false ? '' : 'checked'}><label class="form-check-label" for="sw_uactive">เปิดใช้งานบัญชี</label></div>
+      </div>`,
+      preConfirm: () => ({ p_user_id: id, p_role: document.getElementById('sw_role').value,
+        p_active: document.getElementById('sw_uactive').checked, p_full_name: document.getElementById('sw_uname').value.trim() || null })
+    });
+    if (!r.isConfirmed) return;
+    await Q(sb.rpc('set_user', r.value));
+    Swal.fire('สำเร็จ!', 'บันทึกสิทธิ์เรียบร้อย', 'success');
+    A.loadUsers();
+  },
+
+  // ---------- นำเข้า CSV ----------
+  csvReset: function () {
+    impRows = null; impChecked = false;
+    $('#impFile').val(''); $('#impPreview, #impReport').empty();
+    $('#btnImpCheck, #btnImpCommit').prop('disabled', true);
+  },
+  csvChosen: async function () {
+    const f = document.getElementById('impFile').files[0];
+    impRows = null; impChecked = false;
+    $('#impReport').empty(); $('#btnImpCheck, #btnImpCommit').prop('disabled', true);
+    if (!f) { $('#impPreview').empty(); return; }
+    const cfg = IMP[$('#impType').val()];
+    const text = await f.text();
+    const warnEnc = text.indexOf('\uFFFD') >= 0
+      ? '<div class="alert alert-warning small">พบอักขระอ่านไม่ออก ไฟล์อาจไม่ใช่ UTF-8 — แนะนำให้ดาวน์โหลด CSV จาก Google Sheets ใหม่</div>' : '';
+    const all = parseCSV(text);
+    if (all.length < 2) { $('#impPreview').html('<div class="alert alert-danger">ไฟล์ว่างหรือไม่มีแถวข้อมูล</div>'); return; }
+    const hdr = all[0].map(normHeader);
+    const miss = cfg.req.filter(k => hdr.indexOf(k) < 0);
+    if (miss.length) {
+      $('#impPreview').html(warnEnc + '<div class="alert alert-danger">ไฟล์นี้ไม่ตรงกับชนิด "' + e(cfg.label) + '" — ไม่พบคอลัมน์: <b>' + e(miss.join(', ')) +
+        '</b><br>หัวคอลัมน์ที่พบ: ' + e(all[0].join(', ')) + '</div>');
+      return;
+    }
+    const rows = []; let empty = 0;
+    for (let i = 1; i < all.length; i++) {
+      const cells = all[i];
+      if (cells.every(c => String(c).trim() === '')) { empty++; continue; }
+      const o = { _row: i + 1 };          // เลขแถวเดียวกับใน Google Sheet (หัวตาราง = แถว 1)
+      cfg.cols.forEach(k => { const ix = hdr.indexOf(k); o[k] = ix >= 0 ? String(cells[ix] === undefined ? '' : cells[ix]).trim() : ''; });
+      rows.push(o);
+    }
+    impRows = rows;
+    $('#impPreview').html(warnEnc + '<div class="mb-2">พบข้อมูล <b>' + rows.length + '</b> แถว' + (empty ? ' (ข้ามแถวว่าง ' + empty + ' แถว)' : '') + ' — ตัวอย่าง 5 แถวแรก:</div>' +
+      '<div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>แถว</th>' + cfg.cols.map(k => '<th>' + e(k) + '</th>').join('') + '</tr></thead><tbody>' +
+      rows.slice(0, 5).map(o => '<tr><td>' + o._row + '</td>' + cfg.cols.map(k => '<td>' + e(o[k]) + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>');
+    $('#btnImpCheck').prop('disabled', rows.length === 0);
+  },
+  importCheck: async function () {
+    if (!impRows || !impRows.length) return;
+    const t = $('#impType').val(), cfg = IMP[t];
+    $('#btnImpCheck').prop('disabled', true).text('กำลังตรวจสอบ...');
+    try {
+      const rep = await Q(sb.rpc(cfg.rpc, { p_rows: impRows, p_commit: false }));
+      renderReport(rep, t);
+      impChecked = true;
+      $('#btnImpCommit').prop('disabled', rep.inserted + (rep.updated || 0) === 0);
+    } finally { $('#btnImpCheck').prop('disabled', false).text('🔍 ตรวจสอบก่อน (ยังไม่บันทึก)'); }
+  },
+  importCommit: async function () {
+    if (!impRows || !impChecked) return Swal.fire('แจ้งเตือน', 'กรุณากด "ตรวจสอบก่อน" ก่อนยืนยัน', 'warning');
+    const t = $('#impType').val(), cfg = IMP[t];
+    const c = await Swal.fire({ title: 'ยืนยันนำเข้าข้อมูล "' + cfg.label + '"?', text: 'ข้อมูลจะถูกบันทึกลงฐานข้อมูลจริง (แถวที่ถูกปฏิเสธจะไม่ถูกนำเข้า)', icon: 'question', showCancelButton: true, confirmButtonText: 'ยืนยันนำเข้า', cancelButtonText: 'ยกเลิก' });
+    if (!c.isConfirmed) return;
+    $('#btnImpCommit').prop('disabled', true).text('กำลังนำเข้า...');
+    try {
+      const rep = await Q(sb.rpc(cfg.rpc, { p_rows: impRows, p_commit: true }));
+      renderReport(rep, t);
+      impChecked = false;
+      Swal.fire('นำเข้าเสร็จแล้ว', 'นำเข้า ' + rep.inserted + (rep.updated !== undefined ? ' (ใหม่) + ' + rep.updated + ' (อัปเดต)' : '') + ' รายการ ตรวจยอดรวมรายเดือนกับ Sheet เดิมด้านล่าง', 'success');
+      await loadEmployeesData();
+    } finally { $('#btnImpCommit').text('✅ ยืนยันนำเข้า'); }
+  },
+  importPurge: async function () {
+    const t = $('#impType').val(), cfg = IMP[t];
+    if (!cfg.purge) return Swal.fire('ข้อมูลพนักงานไม่ต้องล้าง', 'นำเข้าซ้ำได้ ระบบจะอัปเดตตามรหัสพนักงาน', 'info');
+    const r = await Swal.fire({ title: 'ล้างข้อมูล "' + cfg.label + '" ที่นำเข้ามา?', icon: 'warning',
+      html: 'จะลบ <b>เฉพาะรายการที่มาจากการนำเข้า</b> (รายการที่คีย์ในระบบใหม่ไม่ถูกแตะ)<br>พิมพ์คำว่า <b>ยืนยัน</b> เพื่อดำเนินการ',
+      input: 'text', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'ลบ', cancelButtonText: 'ยกเลิก',
+      preConfirm: v => v === 'ยืนยัน' ? true : (Swal.showValidationMessage('พิมพ์คำว่า ยืนยัน'), false) });
+    if (!r.isConfirmed) return;
+    const n = await Q(sb.rpc('purge_imported', { p_kind: cfg.purge }));
+    Swal.fire('ลบแล้ว', 'ลบรายการนำเข้า ' + n + ' รายการ', 'success');
+    $('#impReport').empty();
+  }
+});
+
+function updateLockUI() {
+  const locked = S.locks.has(S.sumYm);
+  $('#lockStatus').text(locked ? '🔒 งวดนี้ล็อกแล้ว' : '🔓 งวดนี้ยังไม่ล็อก').toggleClass('bg-danger', locked).toggleClass('bg-secondary', !locked);
+  $('#btnLock').toggleClass('d-none', locked); $('#btnUnlock').toggleClass('d-none', !locked);
+}
+
+function renderReport(rep, t) {
+  const rej = rep.rejected || [], warn = rep.warnings || [];
+  let h = '<div class="card border p-3"><h5>' + (rep.committed ? '✅ ผลการนำเข้า (บันทึกแล้ว)' : '🔍 ผลการตรวจสอบ (ยังไม่บันทึก)') + '</h5><div class="mb-2">' +
+    '<span class="badge bg-primary me-1">ทั้งหมด ' + rep.total + ' แถว</span>' +
+    '<span class="badge bg-success me-1">' + (rep.committed ? 'นำเข้า' : 'พร้อมนำเข้า') + ' ' + rep.inserted + '</span>' +
+    (rep.updated !== undefined ? '<span class="badge bg-info me-1">อัปเดตที่มีอยู่ ' + rep.updated + '</span>' : '') +
+    (rep.skipped ? '<span class="badge bg-secondary me-1">ข้าม (เคยนำเข้าแล้ว) ' + rep.skipped + '</span>' : '') +
+    '<span class="badge ' + (rej.length ? 'bg-danger' : 'bg-success') + ' me-1">ถูกปฏิเสธ ' + rej.length + '</span>' +
+    '<span class="badge ' + (warn.length ? 'bg-warning text-dark' : 'bg-success') + '">ข้อควรตรวจ ' + warn.length + '</span></div>';
+  const list = (arr, title, cls) => arr.length
+    ? '<div class="mt-2"><b class="' + cls + '">' + title + ' (' + arr.length + ')</b><div class="report-box border rounded mt-1"><table class="table table-sm mb-0"><thead><tr><th style="width:80px">แถวใน Sheet</th><th>เหตุผล</th></tr></thead><tbody>' +
+      arr.slice(0, 500).map(x => '<tr><td>' + e(x.row) + '</td><td>' + e(x.reason) + '</td></tr>').join('') + '</tbody></table></div>' +
+      (arr.length > 500 ? '<div class="small text-muted">แสดง 500 แถวแรก</div>' : '') + '</div>' : '';
+  h += list(rej, 'แถวที่ถูกปฏิเสธ (ไม่ถูกนำเข้า — ต้องแก้ใน Sheet หรือคีย์เอง)', 'text-danger');
+  h += list(warn, 'ข้อควรตรวจสอบ (นำเข้าแล้วแต่ควรดู)', 'text-warning');
+  if (rep.months) {
+    const keys = Object.keys(rep.months).sort();
+    if (keys.length) {
+      h += '<div class="mt-3"><b>ยอดรวมรายเดือนของรายการที่' + (rep.committed ? 'นำเข้า' : 'พร้อมนำเข้า') + ' — เทียบกับยอดใน Sheet เดิม</b><table class="table table-sm table-bordered w-auto mt-1"><thead><tr><th>เดือน</th><th class="text-end">รายการ</th>' +
+        (t === 'ot' ? '<th class="text-end">ชั่วโมง</th>' : '') + '<th class="text-end">ยอดเงิน (บาท)</th></tr></thead><tbody>' +
+        keys.map(k => { const m = rep.months[k], p = k.split('-');
+          return '<tr><td>' + MONTHS[+p[1] - 1] + ' ' + (+p[0] + 543) + '</td><td class="text-end">' + m.n + '</td>' +
+            (t === 'ot' ? '<td class="text-end">' + B(m.hrs) + '</td>' : '') + '<td class="text-end">' + B(m.amount) + '</td></tr>'; }).join('') +
+        '</tbody></table></div>';
+    }
+  }
+  $('#impReport').html(h + '</div>');
+}
+</script>
+</body>
+</html>
