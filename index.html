@@ -65,23 +65,12 @@
     </div>
   </div>
 
-  <!-- ===== หน้าล็อกอิน ===== -->
-  <div id="view-login" class="container d-none" style="max-width: 420px; margin-top: 12vh;">
+  <!-- ===== หน้าแจ้งข้อผิดพลาดเข้าระบบอัตโนมัติ (ไม่มีฟอร์มล็อกอินแล้ว) ===== -->
+  <div id="view-login" class="container d-none" style="max-width: 560px; margin-top: 12vh;">
     <div class="card p-4">
-      <h4 class="text-center fw-bold mb-1">OT ANVA &amp; Co., Ltd.</h4>
-      <p class="text-center text-muted mb-4">เข้าสู่ระบบด้วยอีเมลและรหัสผ่านของพนักงาน</p>
-      <form id="loginForm">
-        <div class="mb-3">
-          <label class="form-label fw-bold" for="loginEmail">อีเมล</label>
-          <input type="email" class="form-control" id="loginEmail" autocomplete="username" required>
-        </div>
-        <div class="mb-3">
-          <label class="form-label fw-bold" for="loginPass">รหัสผ่าน</label>
-          <input type="password" class="form-control" id="loginPass" autocomplete="current-password" required>
-        </div>
-        <div class="text-danger mb-3" id="loginMsg"></div>
-        <button type="submit" class="btn btn-dark w-100 py-2" id="btnLogin">เข้าสู่ระบบ</button>
-      </form>
+      <h4 class="text-center fw-bold mb-3">OT ANVA &amp; Co., Ltd.</h4>
+      <div class="alert alert-danger mb-3" id="loginMsg"></div>
+      <button type="button" class="btn btn-dark w-100" onclick="location.reload()">🔄 ลองใหม่</button>
     </div>
   </div>
 
@@ -101,7 +90,6 @@
           <a class="nav-link px-3 d-none" id="nav-users" onclick="switchTab('users')">🔑 6. ผู้ใช้งาน</a>
           <a class="nav-link px-3 d-none" id="nav-import" onclick="switchTab('import')">📥 7. นำเข้าข้อมูล</a>
           <span class="navbar-text small mx-2 text-light" id="whoami"></span>
-          <button class="btn btn-sm btn-outline-light" onclick="A.logout()">ออกจากระบบ</button>
         </div>
       </div>
     </div>
@@ -456,9 +444,13 @@
 <script>
 // ============ ตั้งค่า (anon key เปิดเผยได้ ความปลอดภัยอยู่ที่ล็อกอิน + RLS) ============
 // ห้ามใส่ service_role key ที่นี่เด็ดขาด
+// เวอร์ชันนี้ไม่มีหน้าล็อกอิน: ระบบเข้าสู่ระบบอัตโนมัติด้วยบัญชี owner ที่ใส่ใน AUTO_EMAIL / AUTO_PASS
+// (ใครมีลิงก์เว็บ = เข้าใช้งานได้เต็มสิทธิ์ owner)
 const CFG = {
   SUPABASE_URL: 'https://xmxbfbdtjffbtwufmhgt.supabase.co',
-  SUPABASE_ANON: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhteGJmYmR0amZmYnR3dWZtaGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5MDY0MDksImV4cCI6MjEwNjQ4MjQwOX0.9eLFZLBVf5x6TAD59ipqFPSjGqqMZOIkYoV2yWUSzhw'
+  SUPABASE_ANON: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhteGJmYmR0amZmYnR3dWZtaGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5MDY0MDksImV4cCI6MjEwNjQ4MjQwOX0.9eLFZLBVf5x6TAD59ipqFPSjGqqMZOIkYoV2yWUSzhw',
+  AUTO_EMAIL: 'ใส่_อีเมลบัญชี_owner',
+  AUTO_PASS: 'ใส่_รหัสผ่านบัญชี_owner'
 };
 
 // ============ ฟังก์ชันล้วน (ไม่แตะหน้าเว็บ) ============
@@ -575,26 +567,42 @@ $(async function () {
   initPickers();
   setupDataTables();
   bindForms();
-  sb.auth.onAuthStateChange(function (evt) { if (evt === 'SIGNED_OUT') showLogin(); });
-  const { data } = await sb.auth.getSession();
-  if (data.session) await enterApp(); else showLogin();
+  await autoSignIn();
 });
+
+// เข้าสู่ระบบอัตโนมัติ (ไม่มีหน้าล็อกอิน): ใช้ session เดิมถ้ามี ไม่งั้นล็อกอินด้วยบัญชีใน CFG
+async function autoSignIn() {
+  try {
+    const { data } = await sb.auth.getSession();
+    if (!data.session) {
+      if (!CFG.AUTO_EMAIL || !CFG.AUTO_PASS || CFG.AUTO_EMAIL.indexOf('ใส่_') === 0 || CFG.AUTO_PASS.indexOf('ใส่_') === 0) {
+        return showLogin('ยังไม่ได้ตั้งค่า AUTO_EMAIL / AUTO_PASS ในบล็อก CFG');
+      }
+      const { error } = await sb.auth.signInWithPassword({ email: CFG.AUTO_EMAIL, password: CFG.AUTO_PASS });
+      if (error) return showLogin('เข้าระบบอัตโนมัติไม่สำเร็จ: ' + error.message);
+    }
+    await enterApp();
+  } catch (err) {
+    console.error(err);
+    showLogin('เข้าระบบอัตโนมัติไม่สำเร็จ: ' + errMsg(err));
+  }
+}
 
 function showLogin(msg) {
   $('#view-app').addClass('d-none'); $('#view-login').removeClass('d-none');
-  $('#loginMsg').text(msg || ''); $('#loginPass').val('');
+  $('#loginMsg').text(msg || '');
   document.body.dataset.tab = '';
 }
 
 async function enterApp() {
   try {
     const { data: { user } } = await sb.auth.getUser();
-    if (!user) return showLogin();
+    if (!user) return showLogin('ไม่พบบัญชีผู้ใช้');
     S.user = user;
     const prof = await Q(sb.from('profiles').select('role,active,full_name').eq('user_id', user.id).maybeSingle());
     if (!prof || !prof.active) {
       await sb.auth.signOut();
-      return showLogin('บัญชีนี้ยังไม่ได้รับสิทธิ์ใช้งาน กรุณาติดต่อเจ้าของระบบ');
+      return showLogin('บัญชีที่ใช้เข้าระบบอัตโนมัติยังไม่ได้รับสิทธิ์ใช้งาน กรุณาตรวจสอบตาราง profiles ใน Supabase');
     }
     S.role = prof.role; S.name = prof.full_name || user.email;
     const st = await Q(sb.from('settings').select('value').eq('key', 'company_name').maybeSingle());
@@ -607,8 +615,7 @@ async function enterApp() {
     switchTab(canEdit() ? 'form' : 'history');
   } catch (err) {
     console.error(err);
-    Swal.fire('ผิดพลาด', errMsg(err), 'error');
-    showLogin();
+    showLogin('เกิดข้อผิดพลาด: ' + errMsg(err));
   }
 }
 
@@ -797,7 +804,6 @@ function switchTab(tabId) {
 
 // ============ ฟอร์ม ============
 function bindForms() {
-  $('#loginForm').on('submit', function (ev) { ev.preventDefault(); A.login(); });
   $('#otForm').on('submit', function (ev) { ev.preventDefault(); A.saveOT(); });
   $('#allowanceForm').on('submit', function (ev) { ev.preventDefault(); A.saveAllowance(); });
 
@@ -844,17 +850,6 @@ async function confirmDelete(text) {
 
 // ============ Actions ============
 def({
-  login: async function () {
-    $('#btnLogin').prop('disabled', true).text('กำลังเข้าสู่ระบบ...');
-    try {
-      const { error } = await sb.auth.signInWithPassword({ email: $('#loginEmail').val().trim(), password: $('#loginPass').val() });
-      if (error) { $('#loginMsg').text('อีเมลหรือรหัสผ่านไม่ถูกต้อง'); return; }
-      $('#loginMsg').text('');
-      await enterApp();
-    } finally { $('#btnLogin').prop('disabled', false).text('เข้าสู่ระบบ'); }
-  },
-  logout: async function () { await sb.auth.signOut(); showLogin(); },
-
   // ---------- OT ----------
   saveOT: async function () {
     const empId = $('#empSearch').val();
